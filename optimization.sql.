@@ -1,0 +1,68 @@
+USE datagrokr_de_pipeline;
+
+-- 1. Analyze a customer sales query
+EXPLAIN ANALYZE
+SELECT
+sales_id,
+customer_id,
+sale_date,
+amount
+FROM fact_sales
+WHERE customer_id = 101;
+
+-- 2. Analyze sales for a customer within a date range
+EXPLAIN ANALYZE
+SELECT
+sales_id,
+sale_date,
+amount
+FROM fact_sales
+WHERE customer_id = 101
+AND sale_date >= '2024-01-01';
+
+-- 3. Analyze revenue by customer
+EXPLAIN ANALYZE
+SELECT
+customer_id,
+SUM(amount) AS total_amount
+FROM fact_sales
+GROUP BY customer_id;
+
+-- 4. Inspect the available indexes
+SHOW INDEX FROM fact_sales;
+
+-- 5. Inspect the partition definitions
+SELECT
+PARTITION_NAME,
+PARTITION_DESCRIPTION
+FROM INFORMATION_SCHEMA.PARTITIONS
+WHERE TABLE_SCHEMA = 'datagrokr_de_pipeline'
+AND TABLE_NAME = 'fact_sales';
+
+-- 6. Test a query against the 2024 partition
+SELECT *
+FROM fact_sales PARTITION (p2024);
+
+-- 7. Calculate total sales amount by year
+SELECT
+YEAR(sale_date) AS sales_year,
+SUM(amount) AS total_amount
+FROM fact_sales
+GROUP BY YEAR(sale_date)
+ORDER BY sales_year;
+
+-- 8. Join sales with customer and product dimensions
+EXPLAIN ANALYZE
+SELECT
+f.sales_id,
+c.customer_name,
+p.product_name,
+f.sale_date,
+f.amount
+FROM fact_sales f
+JOIN dim_customer c
+ON f.customer_id = c.customer_id
+JOIN dim_product p
+ON f.product_id = p.product_id
+WHERE f.customer_id = 101
+AND f.sale_date >= '2023-01-01';
