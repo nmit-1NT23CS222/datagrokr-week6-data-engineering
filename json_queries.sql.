@@ -1,0 +1,31 @@
+USE datagrokr_de_pipeline;
+
+-- 1. Display all product attributes
+SELECT
+product_id,
+product_name,
+attributes
+FROM dim_product;
+
+-- 2. Extract tier and support information
+SELECT
+product_name,
+attributes->>'$.tier' AS tier,
+attributes->>'$.support' AS support
+FROM dim_product;
+
+-- 3. Find Gold-tier products
+SELECT
+product_name,
+category,
+price,
+attributes->>'$.tier' AS tier
+FROM dim_product
+WHERE attributes->>'$.tier' = 'Gold';
+
+-- 4. Find products with 24/7 support
+SELECT
+product_name,
+attributes->>'$.support' AS support
+FROM dim_product
+WHERE attributes->>'$.support' = '24/7';
