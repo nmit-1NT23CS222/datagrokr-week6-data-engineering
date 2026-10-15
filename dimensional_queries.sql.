@@ -1,0 +1,106 @@
+USE datagrokr_de_pipeline;
+
+-- 1. Total sales amount
+SELECT SUM(amount) AS total_sales
+FROM fact_sales;
+
+-- 2. Revenue by product
+SELECT
+p.product_name,
+SUM(f.amount) AS total_amount
+FROM fact_sales f
+JOIN dim_product p
+ON f.product_id = p.product_id
+GROUP BY p.product_id, p.product_name
+ORDER BY total_amount DESC;
+
+-- 3. Revenue by customer
+SELECT
+c.customer_name,
+SUM(f.amount) AS total_amount
+FROM fact_sales f
+JOIN dim_customer c
+ON f.customer_id = c.customer_id
+GROUP BY c.customer_id, c.customer_name
+ORDER BY total_amount DESC;
+
+-- 4. Revenue by customer segment
+SELECT
+c.segment,
+SUM(f.amount) AS total_amount
+FROM fact_sales f
+JOIN dim_customer c
+ON f.customer_id = c.customer_id
+GROUP BY c.segment
+ORDER BY total_amount DESC;
+
+-- 5. Revenue by product category
+SELECT
+p.category,
+SUM(f.amount) AS total_amount
+FROM fact_sales f
+JOIN dim_product p
+ON f.product_id = p.product_id
+GROUP BY p.category
+ORDER BY total_amount DESC;
+
+-- 6. Revenue by year
+SELECT
+YEAR(sale_date) AS sales_year,
+SUM(amount) AS total_amount
+FROM fact_sales
+GROUP BY YEAR(sale_date)
+ORDER BY sales_year;
+
+-- 7. Rank customers by total spending
+WITH customer_sales AS (
+SELECT
+customer_id,
+SUM(amount) AS total_spending
+FROM fact_sales
+GROUP BY customer_id
+)
+SELECT
+c.customer_name,
+cs.total_spending,
+DENSE_RANK() OVER (
+ORDER BY cs.total_spending DESC
+) AS spending_rank
+FROM customer_sales cs
+JOIN dim_customer c
+ON cs.customer_id = c.customer_id;
+
+-- 8. Calculate a running total of sales
+WITH daily_sales AS (
+SELECT
+sale_date,
+SUM(amount) AS daily_amount
+FROM fact_sales
+GROUP BY sale_date
+)
+SELECT
+sale_date,
+daily_amount,
+SUM(daily_amount) OVER (
+ORDER BY sale_date
+ROWS BETWEEN UNBOUNDED PRECEDING
+AND CURRENT ROW
+) AS running_total
+FROM daily_sales
+ORDER BY sale_date;
+
+-- 9. Show customer and product details
+SELECT
+f.sales_id,
+c.customer_name,
+p.product_name,
+p.category,
+f.sale_date,
+f.quantity,
+f.amount
+FROM fact_sales f
+JOIN dim_customer c
+ON f.customer_id = c.customer_id
+JOIN dim_product p
+ON f.product_id = p.product_id
+ORDER BY f.sale_date;
